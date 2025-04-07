@@ -24,7 +24,8 @@
 
 using namespace std;
 
-char current;				// Current car	
+char current;
+char nextcar;				// Current car	
 
 void ReadChar(void){		// Read character and skip spaces until 
 				// non space character is read
@@ -41,6 +42,24 @@ void Error(string s){
 // Term := Digit | "(" ArithmeticExpression ")"
 // AdditiveOperator := "+" | "-"
 // Digit := "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"
+
+
+void RationalOperator(void){
+	if (current=="=" ||  current=='<' ||  current=='>' ){
+		cin.get(current);
+	}
+	else if (current=='<' && nextcar=='>' || current=='<' && nextcar=='='||current=='>' && nextcar=='='){
+		cin.get(current);
+		cin.get(nextcar);
+	}
+	else{
+		Error("Opérateur rationnel attendu");
+	}
+}
+
+
+
+
 
 	
 void AdditiveOperator(void){
