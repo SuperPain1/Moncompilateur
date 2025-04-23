@@ -25,13 +25,29 @@
 using namespace std;
 
 char current;
-char nextcar;				// Current car	
+char lookedAhead;				// Current car	
 
-void ReadChar(void){		// Read character and skip spaces until 
-				// non space character is read
-	while(cin.get(current) && (current==' '||current=='\t'||current=='\n'))
-	   	cin.get(current);
+enum OPREL {equ, diff, infe, supe, inf, sup, unknown};
+int NLookedAhead=0;
+
+void ReadChar(void){
+    if(NLookedAhead>0){
+        current=lookedAhead;    // Char has already been read
+        NLookedAhead--;
+    }
+    else
+        // Read character and skip spaces until 
+        // non space character is read
+        while(cin.get(current) && (current==' '||current=='\t'||current=='\n'));
 }
+
+void LookAhead(void){
+    while(cin.get(lookedAhead) && (lookedAhead==' '||lookedAhead=='\t'||lookedAhead=='\n'));
+    NLookedAhead++;
+}
+
+
+
 
 void Error(string s){
 	cerr<< s << endl;
@@ -44,27 +60,92 @@ void Error(string s){
 // Digit := "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"
 
 
-void RationalOperator(void){
-	if (current=="=" ||  current=='<' ||  current=='>' ){
-		cin.get(current);
+OPREL RationalOperator(void){
+	
+	if(current!='<'&&current!='>'&&current!='!'&&current!='='){
+		return unknown;
 	}
-	else if (current=='<' && nextcar=='>' || current=='<' && nextcar=='='||current=='>' && nextcar=='='){
-		cin.get(current);
-		cin.get(nextcar);
+	LookAhead();
+	if(lookedAhead=='='){
+
+		if(current=='<'){
+			ReadChar();
+			ReadChar();
+			return infe;
+		}
+
+		if(current=='='){
+			ReadChar();
+			ReadChar();
+			return equ;
+		}
+
+		if(current=='>'){
+			ReadChar();
+			ReadChar();
+			return supe;
+		}
+
+		if(current=='!'){
+			ReadChar();
+			ReadChar();
+			return diff;
+		}
+	}
+	else if (current=='='){
+		Error("utilisez '==' comme opérateur d'égalité");
+
+	}
+	else if(current=='<'){
+		ReadChar();
+		return inf;
+	}
+	else if(current=='>'){
+		ReadChar();
+		return sup;
 	}
 	else{
 		Error("Opérateur rationnel attendu");
 	}
+	return unknown;
 }
 
+void MultiplicativeOperator(void){
+	if(current=='*'||current=='/'||current=='%'){
+		ReadChar();
+	}
+	else if (current=='&' ){
+		ReadChar();
+		if (current=='&'){
+			ReadChar();
+		}
+		else{
+			Error("l'opérateur ET s'écrit '&&'");
+		}
+		
+	}
+	else
+		Error("Opérateur multiplicatif attendu");
+}
 
 
 
 
 	
 void AdditiveOperator(void){
-	if(current=='+'||current=='-')
+	if(current=='+'||current=='-'){
 		ReadChar();
+	}
+	else if (current=='|' ){
+		ReadChar();
+		if (current=='|'){
+			ReadChar();
+		}
+		else{
+			Error("l'opérateur de comparaison s'écrit '||'");
+		}
+		
+	}
 	else
 		Error("Opérateur additif attendu");	   // Additive operator expected
 }
@@ -77,26 +158,94 @@ void Digit(void){
 		ReadChar();
 	}
 }
-
-void ArithmeticExpression(void);			// Called by Term() and calls Term()
-
-void Term(void){
-	if(current=='('){
+void Letter(void){
+	if((current<'a')||(current>'z'))
+		Error("Lettre attendu");
+	else{
+		cout << "\tpush $"<<current<<endl;
 		ReadChar();
-		ArithmeticExpression();
-		if(current!=')')
-			Error("')' était attendu");		// ")" expected
-		else
-			ReadChar();
 	}
-	else 
-		if (current>='0' && current <='9')
-			Digit();
-	     	else
-			Error("'(' ou chiffre attendu");
+}
+void Number(void){
+	unsigned long long number;
+	if((current<'0')||(current>'9'))
+		Error("Chiffre attendu");
+	else{
+		number=current-'0';
+	}
+	ReadChar();
+	while (current>='0' && current<='9'){
+		number*+10;
+		number=current-'0';
+		ReadChar();
+	}
+
 }
 
-void ArithmeticExpression(void){
+void Expression(void);
+void Factor(void){
+	if (current=='('){
+		ReadChar();
+		Expression();
+		if (current!=')'){
+			Error("')' était attendu");	
+		}
+		ReadChar();
+	}
+	else{
+		if (current<='9'||current>='0'){
+			Number();
+		}
+		else{
+			if(current>='a'||current<='z'){
+				Letter();
+			}
+			else{
+				Error("'(' ou chiffre ou lettre attendue");
+			}
+		}
+	}
+}
+void Term(void){
+	char mulop;
+	Factor();
+	while (current=='*'||current=='/'||current=='%'){
+		mulop=current;
+		MultiplicativeOperator();
+		Factor();
+		cout << "\tpop %rbx"<<endl;
+		cout << "\tpop %rax"<<endl;	
+		if (mulop=='*'){
+			cout<<"\tmulq %rbx"<<endl; //rbx*rax -> rdx:rax
+			cout<<"\tpush %rax"<<endl;
+			break;
+		}
+		else if (mulop=='&'){
+			cout<<"\tmulq %rbx"<<endl; 
+			cout<<"\tpush %rax"<<endl;
+			break;
+		}
+		else if (mulop=='/'){
+
+			cout<<"\tmovq $0, %rdx"<<endl; 
+			cout<<"\tdiv %rbx"<<endl; //rdx:rax / rbx  |  quotient -> rax  |  reste -> rdx
+			cout<<"\tpush %rax"<<endl;
+			break;
+		}
+		else if (mulop=='%'){
+			cout<<"\tmovq $0, %rdx"<<endl;
+			cout<<"\tdiv %rbx"<<endl;
+			cout<<"\tpush %rdx"<<endl;
+			break;
+			}
+		else{
+			Error("Operateur additif attendu");
+		}
+	}
+}
+
+
+void SimpleExpression(void){
 	char adop;
 	Term();
 	while(current=='+'||current=='-'){
@@ -113,6 +262,18 @@ void ArithmeticExpression(void){
 	}
 
 }
+
+void Expression(void){
+	OPREL oprel;
+	SimpleExpression();
+	if(current=='='||current=='!'||current=='<'||current=='>'){
+		oprel=RationalOperator();
+	}
+}
+
+
+
+
 
 int main(void){	// First version : Source code on standard input and assembly code on standard output
 	// Header for gcc assembler / linker
