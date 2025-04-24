@@ -32,6 +32,7 @@ enum OPREL {EQU, DIFF, INF, SUP, INFE, SUPE, WTFR};
 enum OPADD {ADD, SUB, OR, WTFA};
 enum OPMUL {MUL, DIV, MOD, AND ,WTFM};
 
+int numetiq=0;
 TOKEN current;				// Current token
 
 
@@ -44,6 +45,12 @@ FlexLexer* lexer = new yyFlexLexer; // This is the flex tokeniser
 set<string> DeclaredVariables;
 unsigned long TagNumber=0;
 
+string nouvelle_et(string etiq){
+
+	etiq+=to_string(numetiq);
+	numetiq++;
+	return (etiq);
+}
 bool IsDeclared(const char *id){
 	return DeclaredVariables.find(id)!=DeclaredVariables.end();
 }
@@ -95,16 +102,14 @@ void Factor(void){
 		else
 			current=(TOKEN) lexer->yylex();
 	}
-	else 
-		if (current==NUMBER)
-			Number();
-	     	else
-				if(current==ID)
-					Identifier();
-				else
-					Error("'(' ou chiffre ou lettre attendue");
+	else {
+		if (current==NUMBER) Number();
+	    else{
+			if(current==ID) Identifier();
+			else Error("'(' ou chiffre ou lettre attendue");
+		}
+	}
 }
-
 // MultiplicativeOperator := "*" | "/" | "%" | "&&"
 OPMUL MultiplicativeOperator(void){
 	OPMUL opmul;
@@ -299,9 +304,65 @@ void AssignementStatement(void){
 	cout << "\tpop "<<variable<<endl;
 }
 
+void Statement(void);
+
+void IFStatement(void){
+	string cond=lexer->YYText();
+	if (cond=="IF"){
+		current=(TOKEN) lexer->yylex();
+	}
+	else Error("'IF' attendue");
+	Expression();
+	
+	/**/
+	cout<<"\tpop %rax"<<endl;
+	string et_sinon = nouvelle_et("Sinon");
+	cout<<"\t cmpq $0, %rax"<<endl;
+	cout<<"\tjz ";
+	
+	
+	cout<<et_sinon<<endl;
+	cond=lexer->YYText();
+	if (current==KEYWORD && cond=="THEN"){
+		current=(TOKEN) lexer->yylex();
+		
+	}
+	else Error("'THEN' attendue");
+	
+	Statement();
+	et_sinon = nouvelle_et("FinSi");
+	cond=lexer->YYText();
+	cout<<"\tjmp "<< et_sinon<<endl;
+	if(current==KEYWORD && cond=="ELSE"){
+
+		current=(TOKEN) lexer->yylex();
+		Statements()
+	}
+	
+}
+
+
+
 // Statement := AssignementStatement
 void Statement(void){
-	AssignementStatement();
+	if (current==ID){
+		AssignementStatement();
+	}
+	else if (current==KEYWORD){
+		string key=lexer->YYText();
+		if (key=="IF"){
+			IFStatement();
+		}
+		/*else if (key=="WHILE")WhileStatement()*/
+	}
+	/*
+	if (){}
+	else{}
+	
+	
+	
+	
+	*/
 }
 
 // StatementPart := Statement {";" Statement} "."
