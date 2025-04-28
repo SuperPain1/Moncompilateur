@@ -8,8 +8,8 @@ tokeniser.o:	tokeniser.cpp
 		g++ -c tokeniser.cpp
 compilateur:	compilateur.cpp tokeniser.o
 		g++ -ggdb -o compilateur compilateur.cpp tokeniser.o
-test:		compilateur test.p
-		./compilateur <test.p >test.s
-		gcc -ggdb test.s -o test
+test:		compilateur test2.p
+		./compilateur <test2.p >test2.s
+		gcc -ggdb test2.s -o test
 
 

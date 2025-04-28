@@ -19,6 +19,7 @@ using namespace std;
 %option c++
 %option yylineno
 
+keyword ("IF"|"THEN"|"ELSE"|"WHILE"|"DO"|"FOR"|"TO"|"BEGIN"|"END")
 stringconst  \"[^\n"]+\"
 ws      [ \t\n\r]+
 alpha   [A-Za-z]
@@ -29,13 +30,11 @@ addop	(\+|\-|\|\|)
 mulop	(\*|\/|%|\&\&)
 relop	(\<|\>|"=="|\<=|\>=|!=)
 unknown [^\"A-Za-z0-9 \n\r\t\(\)\<\>\=\!\%\&\|\}\-\;\.]+
-keyword ["IF" | "THEN" | "ELSE" | "WHILE" | "FOR"]
+
 %%
 
 
-{keyword} return KEYWORD;
-
-
+{keyword}	return KEYWORD;
 {addop}		return ADDOP;
 {mulop}		return MULOP;
 {relop}		return RELOP;

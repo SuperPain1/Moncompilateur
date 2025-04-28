@@ -94,7 +94,9 @@ void Number(void){
 void Expression(void);			// Called by Term() and calls Term()
 
 void Factor(void){
+	//cout<<"#entrer dans Factor"<<endl;
 	if(current==RPARENT){
+		//cout<<"#entrer dans factor if"<<endl;
 		current=(TOKEN) lexer->yylex();
 		Expression();
 		if(current!=LPARENT)
@@ -103,6 +105,7 @@ void Factor(void){
 			current=(TOKEN) lexer->yylex();
 	}
 	else {
+		//cout<<"#entrer dans factor else"<<endl;
 		if (current==NUMBER) Number();
 	    else{
 			if(current==ID) Identifier();
@@ -128,9 +131,14 @@ OPMUL MultiplicativeOperator(void){
 
 // Term := Factor {MultiplicativeOperator Factor}
 void Term(void){
+	//cout<<"#entrer dans term"<<endl;
+	int cpt=0;
 	OPMUL mulop;
 	Factor();
+	//cout<<"#information de current :"<<current<<endl;
 	while(current==MULOP){
+		//cout<<"#entrer dans term while : "<<cpt<<endl;
+		cpt++;
 		mulop=MultiplicativeOperator();		// Save operator in local variable
 		Factor();
 		cout << "\tpop %rbx"<<endl;	// get first operand
@@ -162,6 +170,7 @@ void Term(void){
 
 // AdditiveOperator := "+" | "-" | "||"
 OPADD AdditiveOperator(void){
+	//cout<<"#entrer dans additive operator"<<endl;
 	OPADD opadd;
 	if(strcmp(lexer->YYText(),"+")==0)
 		opadd=ADD;
@@ -176,9 +185,11 @@ OPADD AdditiveOperator(void){
 
 // SimpleExpression := Term {AdditiveOperator Term}
 void SimpleExpression(void){
+		//cout<<"#je suis dans simple expression"<<endl;
 	OPADD adop;
 	Term();
 	while(current==ADDOP){
+		//cout<<"#entrer sipmle expression while"<<endl;
 		adop=AdditiveOperator();		// Save operator in local variable
 		Term();
 		cout << "\tpop %rbx"<<endl;	// get first operand
@@ -249,9 +260,11 @@ OPREL RelationalOperator(void){
 
 // Expression := SimpleExpression [RelationalOperator SimpleExpression]
 void Expression(void){
+	//cout<<"#je suis dans expression"<<endl;
 	OPREL oprel;
 	SimpleExpression();
 	if(current==RELOP){
+		//cout<<"#entrer dans expression test"<<endl;
 		oprel=RelationalOperator();
 		SimpleExpression();
 		cout << "\tpop %rax"<<endl;
@@ -288,6 +301,7 @@ void Expression(void){
 
 // AssignementStatement := Identifier ":=" Expression
 void AssignementStatement(void){
+	//cout<<"#entrer dans assignement statement"<<endl;
 	string variable;
 	if(current!=ID)
 		Error("Identificateur attendu");
@@ -306,7 +320,12 @@ void AssignementStatement(void){
 
 void Statement(void);
 
+
+//!non verifier
 void IFStatement(void){
+	//cout<<"#je suis dans if statement"<<endl;
+	string et_sinon = nouvelle_et("Si");
+	cout<<et_sinon<<" :";
 	string cond=lexer->YYText();
 	if (cond=="IF"){
 		current=(TOKEN) lexer->yylex();
@@ -316,7 +335,7 @@ void IFStatement(void){
 	
 	/**/
 	cout<<"\tpop %rax"<<endl;
-	string et_sinon = nouvelle_et("Sinon");
+	et_sinon = nouvelle_et("Sinon");
 	cout<<"\t cmpq $0, %rax"<<endl;
 	cout<<"\tjz ";
 	
@@ -330,43 +349,111 @@ void IFStatement(void){
 	else Error("'THEN' attendue");
 	
 	Statement();
+	cout<<et_sinon<<" :"<<endl;
 	et_sinon = nouvelle_et("FinSi");
 	cond=lexer->YYText();
 	cout<<"\tjmp "<< et_sinon<<endl;
 	if(current==KEYWORD && cond=="ELSE"){
 
 		current=(TOKEN) lexer->yylex();
-		Statements()
+		Statement();
 	}
+	cout<<et_sinon<<" :"<<endl;
 	
 }
+//!non verifier
+void WhileStatement(void){
+	string et_tantque = nouvelle_et("Tant que");
+	cout<<et_tantque<<" :"<<endl;
+	string cond=lexer->YYText();
+	if (cond=="WHILE"){
+		current=(TOKEN) lexer->yylex();
+	}
+	else Error("'WHILE' attendue");
+	Expression();
+	cout<<"\tpop %rax"<<endl;
+
+	
+	cout<<"\t cmpq $0, %rax"<<endl;
+	cout<<"\tjz ";
+	cout<<et_tantque<<endl;
+	cond=lexer->YYText();
+	if (current==KEYWORD && cond=="DO"){
+		current=(TOKEN) lexer->yylex();
+		
+	}
+	else Error("'DO' attendue");
+	Statement();
+	cout<<"\tjmp "<<et_tantque<<endl;
+	string et_fintantque = nouvelle_et("FindeTantque");
+	cout<<et_fintantque<<" :"<<endl;
+
+}
+
+//!non verifier
+void ForStatement(void){
+	string et_pourque = nouvelle_et("Pour que");
+	cout<<et_pourque<<" :"<<endl;
+	string cond=lexer->YYText();
+	if (cond=="FOR"){
+		current=(TOKEN) lexer->yylex();
+	}
+	else Error("'FOR' attendue");
+	AssignementStatement();
+	cond=lexer->YYText();
+	if (current==KEYWORD && cond=="TO"){
+		current=(TOKEN) lexer->yylex();
+		
+	}
+	else Error("'TO' attendue");
+
+	Expression();
+	cout<<"\tpop %rax"<<endl;
+
+	
+	cout<<"\t cmpq $0, %rax"<<endl;
+	cout<<"\tjz ";
+	cout<<et_pourque<<endl;
+	cond=lexer->YYText();
+	if (current==KEYWORD && cond=="DO"){
+		current=(TOKEN) lexer->yylex();
+		
+	}
+	else Error("'DO' attendue");
+	Statement();
+	cout<<"\tjmp "<<et_pourque<<endl;
+	string et_finpourque = nouvelle_et("FindePourque");
+	cout<<et_finpourque<<" :"<<endl;
+}
+
 
 
 
 // Statement := AssignementStatement
 void Statement(void){
-	if (current==ID){
+	string key=lexer->YYText();
+	//cout<<"#je suis dans statement"<<endl;
+	cout<<"#key : "<<key<<endl;
+	if (current==ID && current!=KEYWORD){
+		//cout<<"#je suis dans statement id partie"<<endl;
 		AssignementStatement();
 	}
 	else if (current==KEYWORD){
-		string key=lexer->YYText();
+		cout<<"#je suis dans statement keyword partie"<<endl;
 		if (key=="IF"){
 			IFStatement();
 		}
-		/*else if (key=="WHILE")WhileStatement()*/
+		/**/
+		else if (key=="WHILE")WhileStatement();
+		else if (key=="FOR")ForStatement();
+		//else if (key=="BEGIN")BlockStatement();
 	}
-	/*
-	if (){}
-	else{}
 	
-	
-	
-	
-	*/
 }
 
 // StatementPart := Statement {";" Statement} "."
 void StatementPart(void){
+		cout<<"#je suis dans statement part"<<endl;
 	cout << "\t.text\t\t# The following lines contain the program"<<endl;
 	cout << "\t.globl main\t# The main function must be visible from outside"<<endl;
 	cout << "main:\t\t\t# The main function body :"<<endl;
